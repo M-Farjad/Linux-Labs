@@ -1,35 +1,29 @@
 #include <iostream>
 #include <thread>
-#include <mutex>
+#include <semaphore.h>
 
-// global variables
-std::mutex mtx;  // mutex lock to synchronize access to the account balance
-int balance = 100;  // initial account balance
+using namespace std;
+sem_t sem;
+int balance = 100;
 
-// function to deposit money into the account
-void deposit(int amount) {
-    // lock the mutex to ensure that only one thread updates the balance at a time
-    std::unique_lock<std::mutex> lock(mtx);
-
-    // update the account balance
-    int oldBalance = balance;
-    int newBalance = oldBalance + amount;
-    balance = newBalance;
+void deposit(int amount){
+    sem_wait(&sem);
+    int old_balance = balance;
+    int new_balance = old_balance + amount;
+    balance = new_balance;
+    sem_post(&sem);
 }
+int main(){
+    sem_init(&sem,0,1);
+    thread dad(deposit,10000);
+    thread brother(deposit,5000);
+    thread cousin(deposit,5500);
 
-int main() {
-    // create three threads for dad, brother, and cousin
-    std::thread dad(deposit, 10000);
-    std::thread brother(deposit, 5000);
-    std::thread cousin(deposit, 5500);
-
-    // join the threads to wait for them to complete
     dad.join();
     brother.join();
     cousin.join();
+    sem_destroy(&sem);
 
-    // display the final account balance
-    std::cout << "Final account balance: " << balance << std::endl;
-
+    cout<<"Final Amount in your Account is:"<<balance<<endl;
     return 0;
 }
